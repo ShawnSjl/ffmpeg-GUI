@@ -1,0 +1,12 @@
+[build-system]
+requires = ["pyside6"]
+
+[project]
+name = "ffmpeg-GUI"
+version = "0.1.0"
+description = "GUI window for ffmpeg tool"
+readme = "README.md"
+authors = [
+    { name = "Jiale Song", email = "sjlshawn@gmail.com"}
+]
+license = { text = "LGPL-3.0-or-later"}
