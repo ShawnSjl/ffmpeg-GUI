@@ -1,7 +1,5 @@
-import sys
 import datetime
-from sys import prefix
-
+from src.utils import *
 from PySide6.QtCore import (QDateTime, QDir, QLibraryInfo, QSysInfo, Qt,
                             QTimer, Slot, qVersion)
 from PySide6.QtGui import (QCursor, QDesktopServices, QGuiApplication, QIcon,
@@ -17,7 +15,6 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
                                QStyleFactory, QTableWidget, QTabWidget,
                                QTextBrowser, QTextEdit, QToolBox, QToolButton,
                                QTreeView, QVBoxLayout, QWidget, QFileDialog)
-from src.utils import *
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -32,21 +29,32 @@ class MainWindow(QWidget):
         self.signal = MySignal()
 
         input_files_groupbox = self.create_input_files_groupbox()
-        config_groupbox = self.create_config_groupbox()
+        config_toolbox = self.create_config_toolbox()
         command_line_groupbox = self.create_command_line_groupbox()
         progress_groupbox = self.create_progress_groupbox()
         log_groupbox = self.create_log_groupbox()   # create log group box
 
+        # create a test button
+        self.test_button = QPushButton("Test")
+        self.test_button.clicked.connect(self.test)
+        self.test_button.setEnabled(False)
+
         # Set layout
         main_layout = QGridLayout(self)
         main_layout.addWidget(input_files_groupbox, 0, 0)
-        main_layout.addWidget(config_groupbox, 0, 1)
+        main_layout.addWidget(config_toolbox, 0, 1)
         main_layout.addWidget(command_line_groupbox, 1, 0, 1, 2)
         main_layout.addWidget(progress_groupbox, 2, 0, 1, 2)
         main_layout.addWidget(log_groupbox, 3, 0, 1, 2)
+        main_layout.addWidget(self.test_button, 4, 0, 1, 2)
 
         # use signal to update ui
         self.signal.update_signal.connect(self.update_ui)
+
+    @Slot()
+    def test(self):
+        self.completed_jobs += 1
+        self.signal.update_signal.emit(self.completed_jobs)
 
     @Slot()
     def update_ui(self):
@@ -136,24 +144,59 @@ class MainWindow(QWidget):
         # update ui
         self.signal.update_signal.emit(1)
 
-    def create_config_groupbox(self):
+    def create_config_toolbox(self):
         """Create config Groupbox"""
-        result = QGroupBox("Config")
+        result = QToolBox()
 
-        # create a test button
-        self.test_button = QPushButton("Test")
-        self.test_button.clicked.connect(self.test)
-        self.test_button.setEnabled(False)
+        video_config_groupbox = self.create_video_config_groupbox()
+        audio_config_groupbox = self.create_audio_config_groupbox()
+        output_config_groupbox = self.create_output_config_groupbox()
 
-        main_layout = QHBoxLayout(result)
-        main_layout.addWidget(self.test_button)
+        result.addItem(video_config_groupbox, "Video Config")
+        result.addItem(audio_config_groupbox, "Audio Config")
+        result.addItem(output_config_groupbox, "Output Config")
 
         return result
 
-    @Slot()
-    def test(self):
-        self.completed_jobs += 1
-        self.signal.update_signal.emit(self.completed_jobs)
+    def create_video_config_groupbox(self):
+        result = QGroupBox()
+
+        # create encoder choose box
+        encoder_label = QLabel("Encoder:")
+
+        main_layout = QGridLayout(result)
+        main_layout.addWidget(encoder_label, 0, 0)
+
+        return result
+
+    def create_audio_config_groupbox(self):
+        result = QGroupBox()
+
+        # create audio copy button
+        self.audio_copy_button = QCheckBox("Copy All Audio")
+
+        main_layout = QGridLayout(result)
+        main_layout.addWidget(self.audio_copy_button, 0, 0)
+
+        return result
+
+    def create_output_config_groupbox(self):
+        result = QGroupBox()
+
+        output_directory_label = QLabel("Output Directory:")
+        self.output_directory = QLineEdit()
+        self.output_directory.setReadOnly(True)
+        output_directory_button = QPushButton("Choose Directory")
+
+        output_directory_layout = QHBoxLayout()
+        output_directory_layout.addWidget(output_directory_label)
+        output_directory_layout.addWidget(self.output_directory)
+        output_directory_layout.addWidget(output_directory_button)
+
+        main_layout = QGridLayout(result)
+        main_layout.addLayout(output_directory_layout, 0, 0)
+
+        return result
 
     def create_command_line_groupbox(self):
         """Create command line Groupbox"""
