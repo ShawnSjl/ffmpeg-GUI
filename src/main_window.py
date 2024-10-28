@@ -1,5 +1,7 @@
 import sys
 import datetime
+from sys import prefix
+
 from PySide6.QtCore import (QDateTime, QDir, QLibraryInfo, QSysInfo, Qt,
                             QTimer, Slot, qVersion)
 from PySide6.QtGui import (QCursor, QDesktopServices, QGuiApplication, QIcon,
@@ -31,6 +33,7 @@ class MainWindow(QWidget):
 
         input_files_groupbox = self.create_input_files_groupbox()
         config_groupbox = self.create_config_groupbox()
+        command_line_groupbox = self.create_command_line_groupbox()
         progress_groupbox = self.create_progress_groupbox()
         log_groupbox = self.create_log_groupbox()   # create log group box
 
@@ -38,8 +41,9 @@ class MainWindow(QWidget):
         main_layout = QGridLayout(self)
         main_layout.addWidget(input_files_groupbox, 0, 0)
         main_layout.addWidget(config_groupbox, 0, 1)
-        main_layout.addWidget(progress_groupbox, 1, 0, 1, 2)
-        main_layout.addWidget(log_groupbox, 2, 0, 1, 2)
+        main_layout.addWidget(command_line_groupbox, 1, 0, 1, 2)
+        main_layout.addWidget(progress_groupbox, 2, 0, 1, 2)
+        main_layout.addWidget(log_groupbox, 3, 0, 1, 2)
 
         # use signal to update ui
         self.signal.update_signal.connect(self.update_ui)
@@ -150,6 +154,35 @@ class MainWindow(QWidget):
     def test(self):
         self.completed_jobs += 1
         self.signal.update_signal.emit(self.completed_jobs)
+
+    def create_command_line_groupbox(self):
+        """Create command line Groupbox"""
+        result = QGroupBox("Command")
+
+        # create labels
+        prefix = QLabel("ffmpeg -i $INPUT$")
+        postfix = QLabel("$OUTPUT$")
+
+        # create a command text editor
+        self.command_editor = QLineEdit()
+
+        # create reset button
+        reset_button = QPushButton("Reset")
+        reset_button.clicked.connect(self.reset_command_line)
+        reset_button.setDefault(True)
+
+        main_layout = QHBoxLayout(result)
+        main_layout.addWidget(prefix)
+        main_layout.addWidget(self.command_editor, 8)
+        main_layout.addWidget(postfix)
+        main_layout.addStretch(1)
+        main_layout.addWidget(reset_button)
+
+        return result
+
+    @Slot()
+    def reset_command_line(self):
+        self.command_editor.clear()
 
     def create_progress_groupbox(self):
         """Create progress Groupbox"""
