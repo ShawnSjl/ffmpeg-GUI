@@ -11,3 +11,12 @@ class LOG_LEVEL(Enum):
 
 class MySignal(QObject):
     update_signal = Signal(int)
+
+def support_crf(encode_format: str):
+    support_list = [
+        "H.264",
+        "H.265",
+        "VP9",
+        "AV1"
+    ]
+    return encode_format in support_list

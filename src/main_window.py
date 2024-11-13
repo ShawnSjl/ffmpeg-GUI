@@ -5,7 +5,7 @@ from PySide6.QtCore import (QDateTime, QDir, QLibraryInfo, QSysInfo, Qt,
                             QTimer, Slot, qVersion, QProcess)
 from PySide6.QtGui import (QCursor, QDesktopServices, QGuiApplication, QIcon,
                            QKeySequence, QShortcut, QStandardItem,
-                           QStandardItemModel)
+                           QStandardItemModel, QIntValidator, QDoubleValidator)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
                                QCommandLinkButton, QDateTimeEdit, QDial,
                                QDialog, QDialogButtonBox, QFileSystemModel,
@@ -214,13 +214,140 @@ class MainWindow(QWidget):
     def create_video_config_groupbox(self):
         result = QGroupBox()
 
-        # create encoder choose box
-        encoder_label = QLabel("Encoder:")
+        # create enable encode format button
+        self.enable_encode_format = QCheckBox("Specifying the Encoding Format")
+        self.enable_encode_format.clicked.connect(self.enable_change_encode)
 
-        main_layout = QGridLayout(result)
-        main_layout.addWidget(encoder_label, 0, 0)
+        # create encode format choose box
+        self.encode_format = QComboBox()
+        self.encode_format.addItems(constants.SUPPORT_VIDEO_ENCODE_FORMAT.keys())
+        self.encode_format.currentIndexChanged.connect(self.change_encode_format)
+        self.encode_format.setEnabled(False)
+        encode_format_label = QLabel("Encode Format:")
+        encode_format_label.setBuddy(self.encode_format)
+
+        # encode format layout
+        encode_format_layout = QHBoxLayout()
+        encode_format_layout.addWidget(self.enable_encode_format)
+        encode_format_layout.addStretch(1)
+        encode_format_layout.addWidget(encode_format_label)
+        encode_format_layout.addWidget(self.encode_format)
+
+        # encode speed
+        self.encode_speed = QComboBox()
+        self.encode_speed.addItems(constants.ENCODE_SPEED)
+        self.encode_speed.setCurrentIndex(5)
+        self.encode_speed.currentIndexChanged.connect(self.change_encode_speed)
+        encode_speed_label = QLabel("Encode Speed:")
+        encode_speed_label.setBuddy(self.encode_speed)
+
+        # encode speed layout
+        encode_speed_layout = QHBoxLayout()
+        encode_speed_layout.addStretch(1)
+        encode_speed_layout.addWidget(encode_speed_label)
+        encode_speed_layout.addWidget(self.encode_speed)
+
+        # enable video framerate
+        self.enable_video_framerate = QCheckBox("Specifying the Video Framerate")
+        self.enable_video_framerate.clicked.connect(self.enable_change_framerate)
+
+        # video framerate
+        self.video_framerate = QLineEdit()
+        self.video_framerate.setEnabled(False)
+        self.video_framerate.setValidator(QDoubleValidator(0.0, 1000.0, 2, self))
+        self.video_framerate.setText("24")
+        self.video_framerate.textChanged.connect(self.update_command_line)
+        video_framerate_label = QLabel("Video Framerate:")
+        video_framerate_label.setBuddy(self.video_framerate)
+
+        # video framerate layout
+        video_framerate_layout = QHBoxLayout()
+        video_framerate_layout.addWidget(self.enable_video_framerate)
+        video_framerate_layout.addStretch(1)
+        video_framerate_layout.addWidget(video_framerate_label)
+        video_framerate_layout.addWidget(self.video_framerate)
+
+        # enable video scale
+        self.enable_video_scale = QCheckBox("Specifying the Video Scale")
+        self.enable_video_scale.clicked.connect(self.enable_change_scale)
+
+        # video scale
+        self.video_scale = QLineEdit()
+        self.video_scale.setEnabled(False)
+        self.video_scale.setText("1920:1080")
+        self.video_scale.textChanged.connect(self.update_command_line)
+        video_scale_label = QLabel("Video Scale:")
+        video_scale_label.setBuddy(self.video_scale)
+
+        # video scale layout
+        video_scale_layout = QHBoxLayout()
+        video_scale_layout.addWidget(self.enable_video_scale)
+        video_scale_layout.addStretch(1)
+        video_scale_layout.addWidget(video_scale_label)
+        video_scale_layout.addWidget(self.video_scale)
+
+        # video quality
+        self.video_quality = QLineEdit()
+        self.video_quality.setEnabled(False)
+        self.video_quality.setValidator(QIntValidator(0, 51))
+        self.video_quality.setText("28")
+        self.video_quality.textChanged.connect(self.update_command_line)
+        video_quality_label = QLabel("Constant Rate Factor(Video Quality):")
+        video_quality_label.setBuddy(self.video_quality)
+
+        # video quality layout
+        video_quality_layout = QHBoxLayout()
+        video_quality_layout.addStretch(1)
+        video_quality_layout.addWidget(video_quality_label)
+        video_quality_layout.addWidget(self.video_quality)
+
+        # main layout
+        main_layout = QVBoxLayout(result)
+        main_layout.addLayout(encode_format_layout)
+        main_layout.addLayout(encode_speed_layout)
+        main_layout.addLayout(video_framerate_layout)
+        main_layout.addLayout(video_scale_layout)
+        main_layout.addLayout(video_quality_layout)
 
         return result
+
+    @Slot()
+    def enable_change_encode(self):
+        if self.enable_encode_format.isChecked():
+            self.encode_format.setEnabled(True)
+            self.video_quality.setEnabled(support_crf(self.encode_format.currentText()))
+        else:
+            self.encode_format.setEnabled(False)
+            self.video_quality.setEnabled(False)
+
+        self.update_command_line()
+
+    @Slot()
+    def change_encode_format(self):
+        self.video_quality.setEnabled(support_crf(self.encode_format.currentText()))
+        self.update_command_line()
+
+    @Slot()
+    def change_encode_speed(self):
+        self.update_command_line()
+
+    @Slot()
+    def enable_change_framerate(self):
+        if self.enable_video_framerate.isChecked():
+            self.video_framerate.setEnabled(True)
+        else:
+            self.video_framerate.setEnabled(False)
+
+        self.update_command_line()
+
+    @Slot()
+    def enable_change_scale(self):
+        if self.enable_video_scale.isChecked():
+            self.video_scale.setEnabled(True)
+        else:
+            self.video_scale.setEnabled(False)
+
+        self.update_command_line()
 
     def create_audio_config_groupbox(self):
         result = QGroupBox()
@@ -236,34 +363,36 @@ class MainWindow(QWidget):
     def create_file_format_config_groupbox(self):
         result = QGroupBox()
 
-        self.format = QComboBox()
-        self.format.addItems(constants.SUPPORT_FILE_FORMAT)
-        self.format.currentIndexChanged.connect(self.change_output_format)
-        format_label = QLabel("Format:")
-        format_label.setBuddy(self.format)
+        self.file_format = QComboBox()
+        self.file_format.addItems(constants.SUPPORT_FILE_FORMAT)
+        self.file_format.currentIndexChanged.connect(self.change_output_format)
+        file_format_label = QLabel("File Format:")
+        file_format_label.setBuddy(self.file_format)
 
         format_selector_layout = QHBoxLayout()
-        format_selector_layout.addWidget(format_label)
-        format_selector_layout.addWidget(self.format)
+        format_selector_layout.addWidget(file_format_label)
+        format_selector_layout.addWidget(self.file_format)
 
         self.movflag = QCheckBox("Enable Fast Start (Only for mp4 format)")
         self.movflag.setEnabled(False)
         self.movflag.clicked.connect(self.enable_mov_flag)
 
-        main_layout = QGridLayout(result)
-        main_layout.addLayout(format_selector_layout, 0, 0)
-        main_layout.addWidget(self.movflag, 0, 1)
+        main_layout = QHBoxLayout(result)
+        main_layout.addLayout(format_selector_layout)
+        main_layout.addStretch(1)
+        main_layout.addWidget(self.movflag)
 
         return result
 
     @Slot()
     def change_output_format(self):
-        if self.format.currentText() == "mp4":
+        if self.file_format.currentText() == "mp4":
             self.movflag.setEnabled(True)
         else:
             self.movflag.setEnabled(False)
 
         self.update_command_line()
+        self.output_label.setText(f"$OUTPUT$.{self.file_format.currentText()}")
 
     @Slot()
     def enable_mov_flag(self):
@@ -293,7 +422,7 @@ class MainWindow(QWidget):
 
         # create labels
         prefix = QLabel("ffmpeg -i $INPUT$")
-        postfix = QLabel("$OUTPUT$")
+        self.output_label = QLabel(f"$OUTPUT$.{self.file_format.currentText()}")
 
         # create a command text editor
         self.command_editor = QLineEdit()
@@ -306,7 +435,7 @@ class MainWindow(QWidget):
         main_layout = QHBoxLayout(result)
         main_layout.addWidget(prefix)
         main_layout.addWidget(self.command_editor, 8)
-        main_layout.addWidget(postfix)
+        main_layout.addWidget(self.output_label)
         main_layout.addStretch(1)
         main_layout.addWidget(reset_button)
 
@@ -315,6 +444,20 @@ class MainWindow(QWidget):
     @Slot()
     def update_command_line(self):
         cmd = ""
+        if self.enable_encode_format.isChecked():
+            cmd += f" -c:v {constants.SUPPORT_VIDEO_ENCODE_FORMAT[self.encode_format.currentText()]}"
+
+        if self.video_quality.isEnabled():
+            cmd += f" -crf {self.video_quality.text()}"
+
+        cmd += f" -preset {self.encode_speed.currentText()}"
+
+        if self.enable_video_framerate.isChecked():
+            cmd += f" -r {self.video_framerate.text()}"
+
+        if self.enable_video_scale.isChecked():
+            cmd += f" -vf scale=\"{self.video_scale.text()}\""
+
         if self.movflag.isEnabled() and self.movflag.isChecked():
             cmd += " -movflags faststart"
         self.command_editor.setText(cmd)
