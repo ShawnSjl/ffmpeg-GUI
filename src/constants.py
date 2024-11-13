@@ -3,7 +3,8 @@ SUPPORT_FILE_FORMAT = [
     "flv",
     "mkv",
     "mp4",
-    "mov"
+    "mov",
+    "wmv"
 ]
 
 DEFAULT_FFMPEG_PATH = "./ffmpeg/ffmpeg"

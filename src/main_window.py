@@ -131,11 +131,20 @@ class MainWindow(QWidget):
     @Slot()
     def add_files(self):
         """Add new files into file list"""
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select file', '', "All Files (*)")
+        file_filter = "Video Files (*.mp4 *.avi *.mkv *.mov *.flv *.wmv)"
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select file', '', file_filter)
+
+        # Create set for exists files
+        item_set = set()
+        for row in range(self.file_model.rowCount()):
+            item_text = self.file_model.item(row, 0).text()
+            item_set.add(item_text)
+
         for file_path in file_paths:
-            item = QStandardItem(file_path)
-            self.file_model.appendRow(item)
-            self.print_log(LOG_LEVEL.INFO.name, f"Add file {file_path}")
+            if file_path not in item_set:
+                item = QStandardItem(file_path)
+                self.file_model.appendRow(item)
+                self.print_log(LOG_LEVEL.INFO.name, f"Add file {file_path}")
 
         # update ui
         self.signal.update_signal.emit(1)
