@@ -1,7 +1,8 @@
 import datetime
 from src.utils import *
+import src.constants as constants
 from PySide6.QtCore import (QDateTime, QDir, QLibraryInfo, QSysInfo, Qt,
-                            QTimer, Slot, qVersion)
+                            QTimer, Slot, qVersion, QProcess)
 from PySide6.QtGui import (QCursor, QDesktopServices, QGuiApplication, QIcon,
                            QKeySequence, QShortcut, QStandardItem,
                            QStandardItemModel)
@@ -16,13 +17,6 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
                                QTextBrowser, QTextEdit, QToolBox, QToolButton,
                                QTreeView, QVBoxLayout, QWidget, QFileDialog)
 
-SUPPORT_FILE_FORMAT = [
-    "avi",
-    "flv",
-    "mkv",
-    "mp4",
-    "mov"
-]
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -92,6 +86,7 @@ class MainWindow(QWidget):
         # create file list view
         self.file_list_view = QListView()
         self.file_list_view.setModel(self.file_model)
+        self.file_list_view.selectionModel().selectionChanged.connect(self.handle_selection)
 
         # create add button
         add_file_button = QPushButton("Add File")
@@ -101,6 +96,15 @@ class MainWindow(QWidget):
         delete_file_button = QPushButton("Delete File")
         delete_file_button.clicked.connect(self.delete_files)
 
+        self.file_info_button = QPushButton("File Info")
+        self.file_info_button.setEnabled(False)
+        self.file_info_button.clicked.connect(self.show_file_info)
+
+        self.file_info_process = QProcess()
+        self.file_info_process.readyReadStandardOutput.connect(self.handle_stdout)
+        self.file_info_process.readyReadStandardError.connect(self.handle_stderr)
+        self.file_info_process.finished.connect(self.handle_finish)
+
         # create clear All button
         clear_file_button = QPushButton("Clear All Files")
         clear_file_button.clicked.connect(self.clear_files_list)
@@ -109,6 +113,7 @@ class MainWindow(QWidget):
         bottom_layout = QHBoxLayout()
         bottom_layout.addWidget(add_file_button)
         bottom_layout.addWidget(delete_file_button)
+        bottom_layout.addWidget(self.file_info_button)
         bottom_layout.addStretch(1)
         bottom_layout.addWidget(clear_file_button)
 
@@ -118,6 +123,10 @@ class MainWindow(QWidget):
         main_layout.addLayout(bottom_layout)
 
         return result
+
+    @Slot()
+    def handle_selection(self):
+        self.file_info_button.setEnabled(True)
 
     @Slot()
     def add_files(self):
@@ -142,6 +151,30 @@ class MainWindow(QWidget):
 
         # update ui
         self.signal.update_signal.emit(1)
+        self.file_info_button.setEnabled(False)
+
+    @Slot()
+    def show_file_info(self):
+        self.print_log(LOG_LEVEL.DEBUG.name, f"File Info")
+        command = constants.DEFAULT_FFMPEG_PATH
+        item = self.file_model.item(self.file_list_view.currentIndex().row(), 0)
+        arguments = ["-i", f"{item.text()}"]
+
+        self.file_info_process.start(command, arguments)
+
+    @Slot()
+    def handle_stdout(self):
+        data = self.file_info_process.readAllStandardOutput().data().decode("utf-8")
+        self.log_editor.append(data)
+
+    @Slot()
+    def handle_stderr(self):
+        data = self.file_info_process.readAllStandardError().data().decode("utf-8")
+        self.log_editor.append(data)
+
+    @Slot()
+    def handle_finish(self):
+        self.print_log(LOG_LEVEL.INFO.name, f"Finish File Info")
 
     @Slot()
     def clear_files_list(self):
@@ -151,6 +184,7 @@ class MainWindow(QWidget):
 
         # update ui
         self.signal.update_signal.emit(1)
+        self.file_info_button.setEnabled(False)
 
     def create_config_toolbox(self):
         """Create config Groupbox"""
@@ -194,7 +228,7 @@ class MainWindow(QWidget):
         result = QGroupBox()
 
         self.format = QComboBox()
-        self.format.addItems(SUPPORT_FILE_FORMAT)
+        self.format.addItems(constants.SUPPORT_FILE_FORMAT)
         self.format.currentIndexChanged.connect(self.change_output_format)
         format_label = QLabel("Format:")
         format_label.setBuddy(self.format)
@@ -219,6 +253,8 @@ class MainWindow(QWidget):
             self.movflag.setEnabled(True)
         else:
             self.movflag.setEnabled(False)
+
+        self.update_command_line()
 
     @Slot()
     def enable_mov_flag(self):
@@ -270,7 +306,7 @@ class MainWindow(QWidget):
     @Slot()
     def update_command_line(self):
         cmd = ""
-        if self.movflag.isChecked():
+        if self.movflag.isEnabled() and self.movflag.isChecked():
             cmd += " -movflags faststart"
         self.command_editor.setText(cmd)
 
