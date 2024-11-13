@@ -377,10 +377,14 @@ class MainWindow(QWidget):
         self.movflag.setEnabled(False)
         self.movflag.clicked.connect(self.enable_mov_flag)
 
-        main_layout = QHBoxLayout(result)
-        main_layout.addLayout(format_selector_layout)
+        file_format_layout = QHBoxLayout()
+        file_format_layout.addLayout(format_selector_layout)
+        file_format_layout.addStretch(1)
+        file_format_layout.addWidget(self.movflag)
+
+        main_layout = QVBoxLayout(result)
+        main_layout.addLayout(file_format_layout)
         main_layout.addStretch(1)
-        main_layout.addWidget(self.movflag)
 
         return result
 
