@@ -16,6 +16,14 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
                                QTextBrowser, QTextEdit, QToolBox, QToolButton,
                                QTreeView, QVBoxLayout, QWidget, QFileDialog)
 
+SUPPORT_FILE_FORMAT = [
+    "avi",
+    "flv",
+    "mkv",
+    "mp4",
+    "mov"
+]
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -41,12 +49,12 @@ class MainWindow(QWidget):
 
         # Set layout
         main_layout = QGridLayout(self)
-        main_layout.addWidget(input_files_groupbox, 0, 0)
-        main_layout.addWidget(config_toolbox, 0, 1)
-        main_layout.addWidget(command_line_groupbox, 1, 0, 1, 2)
-        main_layout.addWidget(progress_groupbox, 2, 0, 1, 2)
-        main_layout.addWidget(log_groupbox, 3, 0, 1, 2)
-        main_layout.addWidget(self.test_button, 4, 0, 1, 2)
+        main_layout.addWidget(input_files_groupbox, 0, 0, 1, 2)
+        main_layout.addWidget(config_toolbox, 1, 0, 1, 2)
+        main_layout.addWidget(command_line_groupbox, 2, 0, 1, 2)
+        main_layout.addWidget(progress_groupbox, 3, 0, 1, 2)
+        main_layout.addWidget(log_groupbox, 4, 0, 1, 2)
+        main_layout.addWidget(self.test_button, 5, 0, 1, 2)
 
         # use signal to update ui
         self.signal.update_signal.connect(self.update_ui)
@@ -146,15 +154,17 @@ class MainWindow(QWidget):
 
     def create_config_toolbox(self):
         """Create config Groupbox"""
-        result = QToolBox()
+        result = QTabWidget()
 
         video_config_groupbox = self.create_video_config_groupbox()
         audio_config_groupbox = self.create_audio_config_groupbox()
+        file_format_config_groupbox = self.create_file_format_config_groupbox()
         output_config_groupbox = self.create_output_config_groupbox()
 
-        result.addItem(video_config_groupbox, "Video Config")
-        result.addItem(audio_config_groupbox, "Audio Config")
-        result.addItem(output_config_groupbox, "Output Config")
+        result.addTab(video_config_groupbox, "Video")
+        result.addTab(audio_config_groupbox, "Audio")
+        result.addTab(file_format_config_groupbox, "Format")
+        result.addTab(output_config_groupbox, "Output")
 
         return result
 
@@ -179,6 +189,40 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.audio_copy_button, 0, 0)
 
         return result
+
+    def create_file_format_config_groupbox(self):
+        result = QGroupBox()
+
+        self.format = QComboBox()
+        self.format.addItems(SUPPORT_FILE_FORMAT)
+        self.format.currentIndexChanged.connect(self.change_output_format)
+        format_label = QLabel("Format:")
+        format_label.setBuddy(self.format)
+
+        format_selector_layout = QHBoxLayout()
+        format_selector_layout.addWidget(format_label)
+        format_selector_layout.addWidget(self.format)
+
+        self.movflag = QCheckBox("Enable Fast Start (Only for mp4 format)")
+        self.movflag.setEnabled(False)
+        self.movflag.clicked.connect(self.enable_mov_flag)
+
+        main_layout = QGridLayout(result)
+        main_layout.addLayout(format_selector_layout, 0, 0)
+        main_layout.addWidget(self.movflag, 0, 1)
+
+        return result
+
+    @Slot()
+    def change_output_format(self):
+        if self.format.currentText() == "mp4":
+            self.movflag.setEnabled(True)
+        else:
+            self.movflag.setEnabled(False)
+
+    @Slot()
+    def enable_mov_flag(self):
+        self.update_command_line()
 
     def create_output_config_groupbox(self):
         result = QGroupBox()
@@ -222,6 +266,13 @@ class MainWindow(QWidget):
         main_layout.addWidget(reset_button)
 
         return result
+
+    @Slot()
+    def update_command_line(self):
+        cmd = ""
+        if self.movflag.isChecked():
+            cmd += " -movflags faststart"
+        self.command_editor.setText(cmd)
 
     @Slot()
     def reset_command_line(self):
