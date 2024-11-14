@@ -54,7 +54,6 @@ class MainWindow(QWidget):
             self.is_started = False
             self.start_button.setEnabled(self.file_model.rowCount() > 0)
             self.stop_button.setEnabled(False)
-            self.test_button.setEnabled(False)
             self.update_progress_bar()
             self.print_log(LOG_LEVEL.INFO.name, "Work done")
             return
