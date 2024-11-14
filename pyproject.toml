@@ -1,9 +1,11 @@
 [build-system]
-requires = ["pyside6"]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "ffmpeg-GUI"
 version = "0.1.0"
+dependencies = ["PySide6"]
 description = "GUI window for ffmpeg tool"
 readme = "README.md"
 authors = [
