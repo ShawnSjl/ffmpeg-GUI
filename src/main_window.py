@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
                                QScrollBar, QSizePolicy, QSlider, QSpinBox,
                                QStyleFactory, QTableWidget, QTabWidget,
                                QTextBrowser, QTextEdit, QToolBox, QToolButton,
-                               QTreeView, QVBoxLayout, QWidget, QFileDialog, QFrame)
+                               QTreeView, QVBoxLayout, QWidget, QFileDialog, QFrame, QMessageBox)
 
 
 class MainWindow(QWidget):
@@ -719,7 +719,6 @@ class MainWindow(QWidget):
         # update ui
         self.start_button.setEnabled(self.file_model.rowCount() > 0)
         self.stop_button.setEnabled(False)
-        self.test_button.setEnabled(False)
         self.progress_bar.setEnabled(False)
 
         # print log
@@ -728,6 +727,19 @@ class MainWindow(QWidget):
 
     @Slot()
     def prepare_start(self):
+        # Pop a message to notice user to choose output directory
+        if self.output_directory.text() == "":
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("Notice")
+            msg_box.setText("You didn't select output directory!\nIf you selected confirm, the output directory will be input file's directory.")
+            msg_box.setIcon(QMessageBox.Question)
+            msg_box.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+            result = msg_box.exec_()
+
+            if result == QMessageBox.Cancel:
+                return
+
         # reset variables
         self.is_started = True
         self.completed_jobs = 0
@@ -750,7 +762,6 @@ class MainWindow(QWidget):
         # update ui
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-        self.test_button.setEnabled(True)
         self.progress_bar.setEnabled(True)
         self.update_progress_bar()
 
