@@ -55,6 +55,7 @@ class MainWindow(QWidget):
 
     @Slot()
     def test(self):
+        print(self.processes[self.completed_jobs])
         self.completed_jobs += 1
         self.signal.update_signal.emit(self.completed_jobs)
 
@@ -695,6 +696,20 @@ class MainWindow(QWidget):
         self.is_started = True
         self.completed_jobs = 0
         self.jobs = self.file_model.rowCount()
+
+        # create job list
+        self.processes = []
+        for i in range(self.jobs):
+            input_file = self.file_model.item(i, 0).text()
+            output_file = get_output_file_path(enable_rename=self.enable_rename.isChecked(),
+                                                    rename_mode=self.rename_mode.currentText(),
+                                                    rename_content=self.rename.text(),
+                                                    index= i,
+                                                    format=self.file_format.currentText(),
+                                                    original_file_path=input_file,
+                                                    output_directory=self.output_directory.text())
+            cmd = f"-i {input_file} {self.command_editor.text()} {output_file}"
+            self.processes.append(cmd)
 
         # update ui
         self.start_button.setEnabled(False)
