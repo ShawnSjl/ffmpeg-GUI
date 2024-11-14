@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
                                QScrollBar, QSizePolicy, QSlider, QSpinBox,
                                QStyleFactory, QTableWidget, QTabWidget,
                                QTextBrowser, QTextEdit, QToolBox, QToolButton,
-                               QTreeView, QVBoxLayout, QWidget, QFileDialog)
+                               QTreeView, QVBoxLayout, QWidget, QFileDialog, QFrame)
 
 
 class MainWindow(QWidget):
@@ -405,9 +405,15 @@ class MainWindow(QWidget):
         audio_compress_layout.addWidget(self.audio_compress, 1)
         audio_compress_layout.addWidget(audio_k_label)
 
+        # line
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+
         # main layout
         main_layout = QVBoxLayout(result)
         main_layout.addLayout(audio_copy_layout)
+        main_layout.addWidget(line)
         main_layout.addLayout(audio_format_layout)
         main_layout.addLayout(audio_compress_layout)
         main_layout.addStretch(1)
@@ -503,20 +509,99 @@ class MainWindow(QWidget):
     def create_output_config_groupbox(self):
         result = QGroupBox()
 
+        # output directory
         output_directory_label = QLabel("Output Directory:")
         self.output_directory = QLineEdit()
         self.output_directory.setReadOnly(True)
         output_directory_button = QPushButton("Choose Directory")
+        output_directory_button.clicked.connect(self.choose_output_directory)
 
+        # output directory layout
         output_directory_layout = QHBoxLayout()
         output_directory_layout.addWidget(output_directory_label)
         output_directory_layout.addWidget(self.output_directory)
         output_directory_layout.addWidget(output_directory_button)
 
-        main_layout = QGridLayout(result)
-        main_layout.addLayout(output_directory_layout, 0, 0)
+        # enable rename
+        self.enable_rename = QCheckBox("Rename Output File")
+        self.enable_rename.clicked.connect(self.enable_rename_file)
+
+        # rename mode
+        self.rename_mode = QComboBox()
+        self.rename_mode.addItem("Add Prefix")
+        self.rename_mode.addItem("Add Suffix")
+        self.rename_mode.addItem("Rename with Indexed Number")
+        self.rename_mode.setEnabled(False)
+        self.rename_mode.currentIndexChanged.connect(self.change_rename_mode)
+        rename_mode_label = QLabel("Rename Mode:")
+        rename_mode_label.setBuddy(self.rename_mode)
+
+        # rename
+        self.rename = QLineEdit()
+        self.rename.setEnabled(False)
+        self.rename_prefix_label = QLabel("-$NAME$")
+        self.rename_suffix_label = QLabel("$NAME$-")
+        self.rename_suffix_label.setVisible(False)
+        self.rename_index_label = QLabel("-XX")
+        self.rename_index_label.setVisible(False)
+        rename_file_format_label = QLabel(f".{self.file_format.currentText()}")
+
+        # rename layout
+        rename_layout = QHBoxLayout()
+        rename_layout.addWidget(rename_mode_label)
+        rename_layout.addWidget(self.rename_mode)
+        rename_layout.addStretch(1)
+        rename_layout.addWidget(self.rename_suffix_label)
+        rename_layout.addWidget(self.rename)
+        rename_layout.addWidget(self.rename_prefix_label)
+        rename_layout.addWidget(self.rename_index_label)
+        rename_layout.addWidget(rename_file_format_label)
+
+        # line
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+
+        # main layout
+        main_layout = QVBoxLayout(result)
+        main_layout.addLayout(output_directory_layout)
+        main_layout.addWidget(line)
+        main_layout.addWidget(self.enable_rename)
+        main_layout.addLayout(rename_layout)
+        main_layout.addStretch(1)
 
         return result
+
+    @Slot()
+    def choose_output_directory(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Output Directory")
+
+        if folder_path:
+            self.output_directory.setText(folder_path)
+
+    @Slot()
+    def enable_rename_file(self):
+        if self.enable_rename.isChecked():
+            self.rename_mode.setEnabled(True)
+            self.rename.setEnabled(True)
+        else:
+            self.rename_mode.setEnabled(False)
+            self.rename.setEnabled(False)
+
+    @Slot()
+    def change_rename_mode(self):
+        if self.rename_mode.currentText() == "Add Prefix":
+            self.rename_prefix_label.setVisible(True)
+            self.rename_suffix_label.setVisible(False)
+            self.rename_index_label.setVisible(False)
+        elif self.rename_mode.currentText() == "Add Suffix":
+            self.rename_prefix_label.setVisible(False)
+            self.rename_suffix_label.setVisible(True)
+            self.rename_index_label.setVisible(False)
+        else:
+            self.rename_prefix_label.setVisible(False)
+            self.rename_suffix_label.setVisible(False)
+            self.rename_index_label.setVisible(True)
 
     def create_command_line_groupbox(self):
         """Create command line Groupbox"""
