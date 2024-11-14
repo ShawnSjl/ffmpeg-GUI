@@ -36,11 +36,6 @@ class MainWindow(QWidget):
         progress_groupbox = self.create_progress_groupbox()
         log_groupbox = self.create_log_groupbox()   # create log group box
 
-        # create a test button
-        self.test_button = QPushButton("Test")
-        self.test_button.clicked.connect(self.test)
-        self.test_button.setEnabled(False)
-
         # Set layout
         main_layout = QGridLayout(self)
         main_layout.addWidget(input_files_groupbox, 0, 0, 1, 2)
@@ -48,16 +43,9 @@ class MainWindow(QWidget):
         main_layout.addWidget(command_line_groupbox, 2, 0, 1, 2)
         main_layout.addWidget(progress_groupbox, 3, 0, 1, 2)
         main_layout.addWidget(log_groupbox, 4, 0, 1, 2)
-        # main_layout.addWidget(self.test_button, 5, 0, 1, 2)
 
         # use signal to update ui
         self.signal.update_signal.connect(self.update_ui)
-
-    @Slot()
-    def test(self):
-        print(self.processes[self.completed_jobs])
-        self.completed_jobs += 1
-        self.signal.update_signal.emit(self.completed_jobs)
 
     @Slot()
     def update_ui(self):
