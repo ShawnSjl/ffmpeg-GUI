@@ -48,7 +48,7 @@ class MainWindow(QWidget):
         main_layout.addWidget(command_line_groupbox, 2, 0, 1, 2)
         main_layout.addWidget(progress_groupbox, 3, 0, 1, 2)
         main_layout.addWidget(log_groupbox, 4, 0, 1, 2)
-        main_layout.addWidget(self.test_button, 5, 0, 1, 2)
+        # main_layout.addWidget(self.test_button, 5, 0, 1, 2)
 
         # use signal to update ui
         self.signal.update_signal.connect(self.update_ui)
@@ -102,9 +102,9 @@ class MainWindow(QWidget):
         self.file_info_button.clicked.connect(self.show_file_info)
 
         self.file_info_process = QProcess()
-        self.file_info_process.readyReadStandardOutput.connect(self.handle_stdout)
-        self.file_info_process.readyReadStandardError.connect(self.handle_stderr)
-        self.file_info_process.finished.connect(self.handle_finish)
+        self.file_info_process.readyReadStandardOutput.connect(self.handle_file_info_stdout)
+        self.file_info_process.readyReadStandardError.connect(self.handle_file_info_stderr)
+        self.file_info_process.finished.connect(self.handle_file_info_finish)
 
         # create clear All button
         clear_file_button = QPushButton("Clear All Files")
@@ -173,17 +173,17 @@ class MainWindow(QWidget):
         self.file_info_process.start(command, arguments)
 
     @Slot()
-    def handle_stdout(self):
+    def handle_file_info_stdout(self):
         data = self.file_info_process.readAllStandardOutput().data().decode("utf-8")
         self.log_editor.append(data)
 
     @Slot()
-    def handle_stderr(self):
+    def handle_file_info_stderr(self):
         data = self.file_info_process.readAllStandardError().data().decode("utf-8")
         self.log_editor.append(data)
 
     @Slot()
-    def handle_finish(self):
+    def handle_file_info_finish(self):
         self.print_log(LOG_LEVEL.INFO.name, f"Finish File Info")
 
     @Slot()
@@ -669,12 +669,12 @@ class MainWindow(QWidget):
 
         # create start button
         self.start_button = QPushButton("Start")
-        self.start_button.clicked.connect(self.start)
+        self.start_button.clicked.connect(self.prepare_start)
         self.start_button.setEnabled(False)
 
         # create stop button
         self.stop_button = QPushButton("Stop")
-        self.stop_button.clicked.connect(self.terminate)
+        self.stop_button.clicked.connect(self.handle_terminate)
         self.stop_button.setEnabled(False)
 
         # create progress bar
@@ -688,10 +688,59 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.progress_bar)
         main_layout.addWidget(self.stop_button)
 
+        self.process = QProcess(self)
+        self.process.readyReadStandardOutput.connect(self.handle_process_stdout)
+        self.process.readyReadStandardError.connect(self.handle_process_stderr)
+        self.process.finished.connect(self.handle_process_finish)
+
         return result
 
+    def start_new_process(self):
+        if self.completed_jobs < len(self.processes):
+            command = constants.DEFAULT_FFMPEG_PATH
+            arguments = self.processes[self.completed_jobs].split()
+
+            self.print_log(LOG_LEVEL.INFO.name, f"Start Process {self.completed_jobs + 1}/{len(self.processes)}")
+            self.print_log(LOG_LEVEL.DEBUG.name, f"{command} {self.processes[self.completed_jobs]}")
+            self.process.start(command, arguments)
+        else:
+            self.print_log(LOG_LEVEL.INFO.name, f"Work Finished")
+
     @Slot()
-    def start(self):
+    def handle_process_stdout(self):
+        data = self.process.readAllStandardOutput().data().decode("utf-8")
+        self.log_editor.append(data)
+
+    @Slot()
+    def handle_process_stderr(self):
+        data = self.process.readAllStandardError().data().decode("utf-8")
+        self.log_editor.append(data)
+
+    @Slot()
+    def handle_process_finish(self):
+        self.print_log(LOG_LEVEL.INFO.name, f"Finish Process {self.completed_jobs + 1}/{len(self.processes)}")
+        self.completed_jobs += 1
+        self.signal.update_signal.emit(self.completed_jobs)
+
+    @Slot()
+    def handle_terminate(self):
+        # update widgets
+        self.is_started = False
+        self.completed_jobs = -1
+        self.jobs = -1
+
+        # update ui
+        self.start_button.setEnabled(self.file_model.rowCount() > 0)
+        self.stop_button.setEnabled(False)
+        self.test_button.setEnabled(False)
+        self.progress_bar.setEnabled(False)
+
+        # print log
+        self.process.terminate()
+        self.print_log(LOG_LEVEL.INFO.name, "Terminate work")
+
+    @Slot()
+    def prepare_start(self):
         # reset variables
         self.is_started = True
         self.completed_jobs = 0
@@ -720,22 +769,7 @@ class MainWindow(QWidget):
 
         # print log
         self.print_log(LOG_LEVEL.INFO.name, "Start working")
-
-    @Slot()
-    def terminate(self):
-        # update widgets
-        self.is_started = False
-        self.completed_jobs = -1
-        self.jobs = -1
-
-        # update ui
-        self.start_button.setEnabled(self.file_model.rowCount() > 0)
-        self.stop_button.setEnabled(False)
-        self.test_button.setEnabled(False)
-        self.progress_bar.setEnabled(False)
-
-        # print log
-        self.print_log(LOG_LEVEL.INFO.name, "Terminate work")
+        self.start_new_process()
 
     @Slot()
     def update_progress_bar(self):
