@@ -215,7 +215,7 @@ class MainWindow(QWidget):
         result = QGroupBox()
 
         # create enable encode format button
-        self.enable_encode_format = QCheckBox("Specifying the Encoding Format")
+        self.enable_encode_format = QCheckBox("Specifying Encoding Format")
         self.enable_encode_format.clicked.connect(self.enable_change_encode)
 
         # create encode format choose box
@@ -248,7 +248,7 @@ class MainWindow(QWidget):
         encode_speed_layout.addWidget(self.encode_speed)
 
         # enable video framerate
-        self.enable_video_framerate = QCheckBox("Specifying the Video Framerate")
+        self.enable_video_framerate = QCheckBox("Specifying Video Framerate")
         self.enable_video_framerate.clicked.connect(self.enable_change_framerate)
 
         # video framerate
@@ -268,7 +268,7 @@ class MainWindow(QWidget):
         video_framerate_layout.addWidget(self.video_framerate)
 
         # enable video scale
-        self.enable_video_scale = QCheckBox("Specifying the Video Scale")
+        self.enable_video_scale = QCheckBox("Specifying Video Scale")
         self.enable_video_scale.clicked.connect(self.enable_change_scale)
 
         # video scale
@@ -354,11 +354,109 @@ class MainWindow(QWidget):
 
         # create audio copy button
         self.audio_copy_button = QCheckBox("Copy All Audio")
+        self.audio_copy_button.setChecked(True)
+        self.audio_copy_button.clicked.connect(self.handle_audio_copy)
 
-        main_layout = QGridLayout(result)
-        main_layout.addWidget(self.audio_copy_button, 0, 0)
+        # audio copy button layout
+        audio_copy_layout = QHBoxLayout()
+        audio_copy_layout.addWidget(self.audio_copy_button)
+        audio_copy_layout.addStretch(1)
+
+        # enable audio format
+        self.enable_audio_format = QCheckBox("Specifying Audio Format")
+        self.enable_audio_format.setEnabled(False)
+        self.enable_audio_format.clicked.connect(self.enable_change_audio_format)
+
+        # audio format
+        self.audio_format = QComboBox()
+        self.audio_format.addItems(constants.SUPPORT_AUDIO_ENCODE_FORMAT.keys())
+        self.audio_format.currentIndexChanged.connect(self.change_audio_format)
+        self.audio_format.setEnabled(False)
+        audio_format_label = QLabel("Audio Format:")
+        audio_format_label.setBuddy(self.audio_format)
+
+        # audio format layout
+        audio_format_layout = QHBoxLayout()
+        audio_format_layout.addWidget(self.enable_audio_format)
+        audio_format_layout.addStretch(1)
+        audio_format_layout.addWidget(audio_format_label)
+        audio_format_layout.addWidget(self.audio_format)
+
+        # enable audio compress
+        self.enable_audio_compress = QCheckBox("Specifying Audio Bit Rate")
+        self.enable_audio_compress.setEnabled(False)
+        self.enable_audio_compress.clicked.connect(self.enable_change_audio_compress)
+
+        # audio compress
+        self.audio_compress = QLineEdit()
+        self.audio_compress.setEnabled(False)
+        self.audio_compress.setText("192")
+        self.audio_compress.setValidator(QIntValidator(0, 500))
+        self.audio_compress.textChanged.connect(self.update_command_line)
+        audio_k_label = QLabel("k")
+        audio_compress_label = QLabel("Audio Bit Rate:")
+        audio_compress_label.setBuddy(self.audio_compress)
+
+        # audio layout
+        audio_compress_layout = QHBoxLayout()
+        audio_compress_layout.addWidget(self.enable_audio_compress)
+        audio_compress_layout.addStretch(6)
+        audio_compress_layout.addWidget(audio_compress_label)
+        audio_compress_layout.addWidget(self.audio_compress, 1)
+        audio_compress_layout.addWidget(audio_k_label)
+
+        # main layout
+        main_layout = QVBoxLayout(result)
+        main_layout.addLayout(audio_copy_layout)
+        main_layout.addLayout(audio_format_layout)
+        main_layout.addLayout(audio_compress_layout)
+        main_layout.addStretch(1)
 
         return result
+
+    @Slot()
+    def handle_audio_copy(self):
+        if self.audio_copy_button.isChecked():
+            self.enable_audio_format.setEnabled(False)
+            self.audio_format.setEnabled(False)
+            self.enable_audio_compress.setEnabled(False)
+            self.audio_compress.setEnabled(False)
+        else:
+            self.enable_audio_format.setEnabled(True)
+            self.audio_format.setEnabled(True)
+            self.enable_audio_compress.setEnabled(True)
+            self.audio_compress.setEnabled(True)
+
+        self.update_command_line()
+
+    @Slot()
+    def enable_change_audio_format(self):
+        if self.enable_audio_format.isChecked():
+            self.audio_format.setEnabled(True)
+        else:
+            self.audio_format.setEnabled(False)
+
+        self.update_command_line()
+
+    @Slot()
+    def change_audio_format(self):
+        if self.audio_format.currentText() == "FLAC":
+            self.enable_audio_compress.setEnabled(False)
+            self.audio_compress.setEnabled(False)
+        else:
+            self.enable_audio_compress.setEnabled(True)
+            self.audio_compress.setEnabled(True)
+
+        self.update_command_line()
+
+    @Slot()
+    def enable_change_audio_compress(self):
+        if self.enable_audio_compress.isChecked():
+            self.audio_compress.setEnabled(True)
+        else:
+            self.audio_compress.setEnabled(False)
+
+        self.update_command_line()
 
     def create_file_format_config_groupbox(self):
         result = QGroupBox()
@@ -464,6 +562,15 @@ class MainWindow(QWidget):
 
         if self.movflag.isEnabled() and self.movflag.isChecked():
             cmd += " -movflags faststart"
+
+        if self.audio_copy_button.isChecked():
+            cmd += " -c:a copy"
+        else:
+            if self.enable_audio_format.isChecked():
+                cmd += f" -c:a {constants.SUPPORT_AUDIO_ENCODE_FORMAT[self.audio_format.currentText()]}"
+            if self.audio_compress.isEnabled() and self.enable_audio_compress.isChecked():
+                cmd += f" -b:a {self.audio_compress.text()}k"
+
         self.command_editor.setText(cmd)
 
     @Slot()

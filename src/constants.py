@@ -20,6 +20,14 @@ SUPPORT_VIDEO_ENCODE_FORMAT = {
     "Theora": "libtheora"
 }
 
+SUPPORT_AUDIO_ENCODE_FORMAT = {
+    "MP3": "libmp3lame",
+    "AAC": "aac",
+    "WAV": "pcm_s16le",
+    "FLAC": "flac",
+    "ALAC": "alac"
+}
+
 ENCODE_SPEED = [
     "ultrafast",
     "superfast",
