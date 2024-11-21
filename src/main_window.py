@@ -685,10 +685,11 @@ class MainWindow(QWidget):
     def start_new_process(self):
         if self.completed_jobs < len(self.processes):
             command = constants.DEFAULT_FFMPEG_PATH
-            arguments = self.processes[self.completed_jobs].split()
+            arguments = self.processes[self.completed_jobs]
+            cmdline = " ".join(arguments)
 
             self.print_log(LOG_LEVEL.INFO.name, f"Start Process {self.completed_jobs + 1}/{len(self.processes)}")
-            self.print_log(LOG_LEVEL.DEBUG.name, f"{command} {self.processes[self.completed_jobs]}")
+            self.print_log(LOG_LEVEL.DEBUG.name, f"{command} {cmdline}")
             self.process.start(command, arguments)
         else:
             self.print_log(LOG_LEVEL.INFO.name, f"Work Finished")
@@ -756,7 +757,7 @@ class MainWindow(QWidget):
                                                     format=self.file_format.currentText(),
                                                     original_file_path=input_file,
                                                     output_directory=self.output_directory.text())
-            cmd = f"-i {input_file} {self.command_editor.text()} {output_file}"
+            cmd = ["-i", input_file] + self.command_editor.text().split() + [output_file]
             self.processes.append(cmd)
 
         # update ui
