@@ -709,6 +709,7 @@ class MainWindow(QWidget):
         self.print_log(LOG_LEVEL.INFO.name, f"Finish Process {self.completed_jobs + 1}/{len(self.processes)}")
         self.completed_jobs += 1
         self.signal.update_signal.emit(self.completed_jobs)
+        self.start_new_process()
 
     @Slot()
     def handle_terminate(self):
